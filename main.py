@@ -1,66 +1,78 @@
 import os
-import random
+
 import pygame
 
-coords = []
+width, height = 500, 500
 all_sprites = pygame.sprite.Group()
-class Bomb():
+pygame.init()
+size = 500, 500
+x, y = 150, 150
+screen = pygame.display.set_mode(size)
+parachutes = pygame.sprite.Group()
+pygame.display.set_caption('Парашют')
+
+
+def load_image(name, colorkey=-1):
+    fullname = os.path.join('data', name)
+    # если файл не существует, то выходим
+    if not os.path.isfile(fullname):
+        print(f"Файл с изображением '{fullname}' не найден")
+        exit()
+    image = pygame.image.load(fullname)
+    if colorkey is not None:
+        image = image.convert()
+        if colorkey == -1:
+            colorkey = image.get_at((0, 0))
+        image.set_colorkey(colorkey)
+    else:
+        image = image.convert_alpha()
+    return image
+
+
+class Mountain(pygame.sprite.Sprite):
+    image = load_image("mountains.png")
+
     def __init__(self):
-        self.coords = []
-        for _ in range(20):
-            sprite = pygame.sprite.Sprite()
-            sprite.image = self.load_image("bomb.png")
-            sprite.rect = sprite.image.get_rect()
-            sprite.rect.x = x
-            sprite.rect.y = y
-            coords.append(sprite.rect)
-            all_sprites.add(sprite)
+        super().__init__(all_sprites)
+        self.image = Mountain.image
+        self.rect = self.image.get_rect()
+        # вычисляем маску для эффективного сравнения
+        self.mask = pygame.mask.from_surface(self.image)
+        # располагаем горы внизу
+        self.rect.bottom = height
 
-    def render(self, pos):
-        for i in range(20):
-            if coords[i].collidepoint(pos):
-                sprite = pygame.sprite.Sprite()
-                sprite.image = self.load_image("boom.png")
-                sprite.rect = sprite.image.get_rect()
-                sprite.rect.x = coords[i][0]
-                sprite.rect.y = coords[i][1]
-                coords.append(sprite.rect)
-                all_sprites.add(sprite)
+mountain = Mountain()
+
+class Landing(pygame.sprite.Sprite):
+    image = load_image("parachute.png")
+
+    def __init__(self, pos):
+        super().__init__(all_sprites)
+        self.image = Landing.image
+        self.rect = self.image.get_rect()
+        # вычисляем маску для эффективного сравнения
+        self.mask = pygame.mask.from_surface(self.image)
+        self.rect.x = pos[0] - 58
+        self.rect.y = pos[1] - 50
+
+    def update(self):
+        # если ещё в небе
+        if not pygame.sprite.collide_mask(self, mountain):
+            self.rect = self.rect.move(0, 1)
 
 
-    def load_image(self, name):
-        fullname = os.path.join('data', name)
-        # если файл не существует, то выходим
-        if not os.path.isfile(fullname):
-            print(f"Файл с изображением '{fullname}' не найден")
+
+running = True
+clock = pygame.time.Clock()
+while running:
+    clock.tick(30)
+    all_sprites.draw(screen)
+    parachutes.draw(screen)
+    parachutes.update()
+    pygame.display.flip()
+    screen.fill('black')
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
             exit()
-        image = pygame.image.load(fullname)
-        return image
-
-    def run(self):
-        for i in range(20):
-            coords[i][0], coords[i][1] = random.randint(0, 450), random.randint(0, 450)
-
-
-if __name__ == '__main__':
-    pygame.init()
-    size = 500, 500
-    x, y = 150, 150
-    screen = pygame.display.set_mode(size)
-    pygame.display.set_caption('Бомбочки')
-    bomb = Bomb()
-    running = True
-    clock = pygame.time.Clock()
-    while running:
-        clock.tick(10)
-        bomb.run()
-        screen.fill('black')
-        all_sprites.draw(screen)
-        pygame.display.flip()
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                exit()
-            if event.type == pygame.MOUSEBUTTONDOWN:
-                bomb.render(event.pos)
-
-
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            parachutes.add(Landing(event.pos))
