@@ -44,7 +44,7 @@ class Mountain(pygame.sprite.Sprite):
 mountain = Mountain()
 
 class Landing(pygame.sprite.Sprite):
-    image = load_image("parachute.png")
+    image = load_image('parachute.png')
 
     def __init__(self, pos):
         super().__init__(all_sprites)
